@@ -1,0 +1,147 @@
+import click
+import requests
+import csv
+import pathlib
+
+
+@click.command()
+@click.option("--data-type", "-d", default="metadata_stats",
+    help="Type of data to be requested. Expected values: metadata_stats, metadata, sampleinfo_stats, sampleinfo.",
+)
+@click.option("--study_id", "-s", default="",
+    help="Study_id of the requested metadata. Used only for metadata. If omitted, "
+         "study_group_id parameter is expected to be provided.",
+)
+@click.option("--study_group_id", "-sg", default="",
+    help="Study_group_id of the requested metadata. Used only for metadata. If omitted, "
+         "study_id parameter is expected to be provided.",
+)
+@click.option("--study_group_ids", "-sgs", default="",
+    help="Study_group_ids of the requested samlpeinfo dataset; multiple comma delimited values can be provided. "
+         "Required parameter. Used only for sampleinfo data.",
+)
+@click.option("--dataset_type_id", "-dt", default="",
+    help="Dataset_type_id of the requested samlpeinfo dataset. Used only for sampleinfo data. If omitted, "
+         "default 'manifest' value (1) will be used.",
+)
+@click.option("--out-file", "-o", default="",  # ./output.csv
+    help="Path to csv file to store the result.",
+    type=click.Path(dir_okay=False))
+def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_id, out_file):
+    # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, study_id, out_file))
+    # response = requests.get("http://localhost:5001//api/metadata/stats")
+    if check_data_type_value:
+        api_url, err_msg = identify_api_url(data_type, study_id, study_group_id, study_group_ids, dataset_type_id)
+    else:
+        api_url = ''
+        err_msg = 'Unexpected data_type value ({}) was provided. Run --help for the list of expected values.'\
+            .format(data_type)
+    if len(err_msg) == 0:
+        if len(api_url) > 0:
+            response = requests.get(api_url)
+            # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, stu)
+            # print(response.status_code)
+            json_parsed = response.json()
+
+            output_data (json_parsed, out_file)
+        else:
+            print ('Error: Cannot identify an API call for the given parameters.')
+    else:
+        # report an error
+        print('Error: {}'.format(err_msg))
+
+def check_data_type_value(data_type):
+    data_type_values = ['metadata_stats', 'sampleinfo_stats', 'metadata', 'sampleinfo']
+    if data_type in data_type_values:
+        return True
+    else:
+        return False
+
+def identify_api_url (data_type, study_id, study_group_id, study_group_ids, dataset_type_id):
+    # TODO: get api url from a config
+    api_server_url = 'http://localhost:5001'
+    error_message = ''
+    out_url = None
+
+    # if metadata stats view was requested
+    if data_type == 'metadata_stats' or len(data_type.strip()) == 0:
+        out_url = '{}/api/metadata/stats'.format(api_server_url)
+
+    # if sampleinfo stats view was requested
+    if data_type == 'sampleinfo_stats':
+        out_url = '{}/api/sampleinfo/stats'.format(api_server_url)
+
+    # if metadata was requested and study_id or study_group_id values were provided
+    if data_type == 'metadata' and (len(str(study_id).strip()) > 0 or len(str(study_group_id).strip())> 0):
+        # if study_id is provided, study_group_id can be ignored
+        if len(study_id.strip()) > 0:
+            out_url = '{}/api/metadata/study/{}'.format(api_server_url, study_id.strip())
+        if len(study_group_id.strip()) > 0:
+            out_url = '{}/api/metadata/studygroup/{}'.format(api_server_url, study_group_id.strip())
+    # if out_url was not set yet, metadata was requested and study_id or study_group_id values were not provided
+    if not out_url and data_type == 'metadata':
+        # report an error since one of the parameters must be provided
+        error_message = 'Missing value - "status_id" or "status_group_id" value is required to run the metadata query.'
+
+    # if sampleinfo was requested and study_group_id and dataset_type_id values were provided
+    if data_type == 'sampleinfo' and len(str(dataset_type_id).strip()) > 0 and len(str(study_group_ids).strip()) > 0:
+        out_url = '{}/api/sampleinfo/studygroup_datasettype/{}/{}'\
+            .format(api_server_url, study_group_ids.strip(), dataset_type_id.strip())
+    # if out_url was not set yet, sampleinfo was requested
+    # and study_group_id value was provided while dataset_type_id was not
+    if not out_url and data_type == 'sampleinfo' and len(str(study_group_ids).strip()) > 0:
+        out_url = '{}/api/sampleinfo/dataset?study_group_ids={}'.format(api_server_url, study_group_ids.strip())
+    # if out_url was not set yet, sampleinfo was requested and required parameter values were not provided report error
+    if not out_url and data_type == 'sampleinfo':
+        error_message = 'Missing value - "study_group_ids" value is required to run the sampleinfo query.'
+
+    return out_url, error_message
+
+def output_data (json_parsed, out_file):
+    # check if output to file was requested
+    out_to_file = False
+    if len(out_file.strip()) > 0:
+        out_to_file = True
+    else:
+        out_file = '___temp_file___.csv'
+
+    # if out_to_file:
+    # open file for output; newline='' was added to avoid blank lines between the rows (for Python3)
+    result_file = open(out_file, 'w', newline='')
+    csv_writer = csv.writer(result_file)
+    count = 0
+
+    if 'data' in json_parsed:
+        for row in json_parsed['data']:
+            if count == 0:
+                # Writing headers of CSV file
+                header = row.keys()
+                csv_writer.writerow(header)
+                # output_function (header)
+                count += 1
+
+            # Writing data of CSV file
+            csv_writer.writerow(row.values())
+            # output_function(row.values())
+            # if out_to_file:
+            #     csv_writer.writerow(row.values())
+            # else:
+            #     print(','.join(str(val) for val in row.values()))
+    else:
+        print(json_parsed)
+
+    # close file, if that was opened
+    result_file.close()
+
+    if not out_to_file:
+        # if output file was not provided, read the created temp file, print the output and drop the file afterword
+        result_file = open(out_file, 'r')
+        for line in result_file.readlines():
+            print(line.strip())
+        result_file.close()
+        # delete file
+        result_file = pathlib.Path(out_file)
+        result_file.unlink()
+
+if __name__ =="__main__":
+    process()
