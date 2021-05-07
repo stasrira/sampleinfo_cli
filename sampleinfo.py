@@ -1,8 +1,17 @@
+#!./.venv/bin python
+
+import json
 import click
+from os import environ, path
+from dotenv import load_dotenv
 import requests
 import csv
 import pathlib
 
+# load environment variables from files
+basedir = path.abspath(path.dirname(__file__))
+load_dotenv(path.join(basedir, '.flaskenv'))
+load_dotenv(path.join(basedir, '.env'))
 
 @click.command()
 @click.option("--data-type", "-d", default="metadata_stats",
@@ -26,10 +35,15 @@ import pathlib
 )
 @click.option("--out-file", "-o", default="",  # ./output.csv
     help="Path to csv file to store the result.",
-    type=click.Path(dir_okay=False))
-def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_id, out_file):
+    type=click.Path(dir_okay=False)
+)
+@click.option("--output-format", "-of", default="csv",
+    help="Data format to be used to output received data. Expected values are: 1) csv - for comma delimited format, "
+         "2) json - for json format",
+)
+
+def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_id, out_file, output_format):
     # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, study_id, out_file))
-    # response = requests.get("http://localhost:5001//api/metadata/stats")
     if check_data_type_value:
         api_url, err_msg = identify_api_url(data_type, study_id, study_group_id, study_group_ids, dataset_type_id)
     else:
@@ -38,14 +52,15 @@ def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_i
             .format(data_type)
     if len(err_msg) == 0:
         if len(api_url) > 0:
+            # access api and retrieve the data
             response = requests.get(api_url)
             # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, stu)
             # print(response.status_code)
-            json_parsed = response.json()
+            # json_parsed =
 
-            output_data (json_parsed, out_file)
+            output_data (response.json(), out_file, output_format)
         else:
-            print ('Error: Cannot identify an API call for the given parameters.')
+            print ('Error: Cannot identify the database call for the given parameters.')
     else:
         # report an error
         print('Error: {}'.format(err_msg))
@@ -59,7 +74,7 @@ def check_data_type_value(data_type):
 
 def identify_api_url (data_type, study_id, study_group_id, study_group_ids, dataset_type_id):
     # TODO: get api url from a config
-    api_server_url = 'http://localhost:5001'
+    api_server_url = environ.get('SAMPLEINFO_CLI_URL')
     error_message = ''
     out_url = None
 
@@ -97,7 +112,16 @@ def identify_api_url (data_type, study_id, study_group_id, study_group_ids, data
 
     return out_url, error_message
 
-def output_data (json_parsed, out_file):
+def output_data (json_parsed, out_file, dataformat = None):
+    if not dataformat:
+        dataformat = 'csv'
+
+    if dataformat == 'csv':
+        output_data_csv (json_parsed, out_file)
+    if dataformat == 'json':
+        output_data_json(json_parsed, out_file)
+
+def output_data_csv (json_parsed, out_file):
     # check if output to file was requested
     out_to_file = False
     if len(out_file.strip()) > 0:
@@ -142,6 +166,30 @@ def output_data (json_parsed, out_file):
         # delete file
         result_file = pathlib.Path(out_file)
         result_file.unlink()
+
+def output_data_json (json_parsed, out_file):
+    # check if output to file was requested
+    out_to_file = False
+    if len(out_file.strip()) > 0:
+        out_to_file = True
+
+    if out_to_file:
+        # open file for output; newline='' was added to avoid blank lines between the rows (for Python3)
+        result_file = open(out_file, 'a', newline='')
+
+        if 'data' in json_parsed:
+            result_file.write(json.dumps(json_parsed['data']))
+        else:
+            print(json_parsed)
+        # close file, if that was opened
+        result_file.close()
+
+    if not out_to_file:
+        # if output file was not provided
+        if 'data' in json_parsed:
+            print(json.dumps(json_parsed['data']))
+        else:
+            print(json_parsed)
 
 if __name__ =="__main__":
     process()
