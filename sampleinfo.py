@@ -1,5 +1,3 @@
-#!./.venv/bin python
-
 import json
 import click
 from os import environ, path
@@ -12,6 +10,7 @@ import pathlib
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.flaskenv'))
 load_dotenv(path.join(basedir, '.env'))
+api_server_url = environ.get('SAMPLEINFO_CLI_URL')
 
 @click.command()
 @click.option("--data-type", "-d", default="metadata_stats",
@@ -74,7 +73,7 @@ def check_data_type_value(data_type):
 
 def identify_api_url (data_type, study_id, study_group_id, study_group_ids, dataset_type_id):
     # TODO: get api url from a config
-    api_server_url = environ.get('SAMPLEINFO_CLI_URL')
+    # api_server_url = environ.get('SAMPLEINFO_CLI_URL')
     error_message = ''
     out_url = None
 
@@ -178,7 +177,7 @@ def output_data_json (json_parsed, out_file):
         result_file = open(out_file, 'a', newline='')
 
         if 'data' in json_parsed:
-            result_file.write(json.dumps(json_parsed['data']))
+            result_file.write(json.dumps(json_parsed['data'], indent = 20))
         else:
             print(json_parsed)
         # close file, if that was opened
