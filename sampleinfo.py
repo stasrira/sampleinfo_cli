@@ -43,7 +43,7 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
 
 def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_id, out_file, output_format):
     # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, study_id, out_file))
-    if check_data_type_value:
+    if check_data_type_value (data_type):
         api_url, err_msg = identify_api_url(data_type, study_id, study_group_id, study_group_ids, dataset_type_id)
     else:
         api_url = ''
