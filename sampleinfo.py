@@ -14,7 +14,15 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
 
 @click.command()
 @click.option("--data-type", "-d", default="metadata_stats",
-    help="Type of data to be requested. Expected values: metadata_stats, metadata, sampleinfo_stats, sampleinfo.",
+    help="\b\n"
+         "Type of data to be requested. Expected values: "
+         "\nmetadata_stats (no required parameters) - returns a list of the available metadata datasets, "
+         "\nsampleinfo_stats (no required parameters) - returns a list of the available sampleinfo datasets, "
+         "\nmetadata (requires -s or -sg parameter) - returns metadata dataset for the given study_id (-s); "
+         "\n                                          if only study_group_id (-sg) is provided, it will identify default study_id "
+         "\n                                          withing the study_group_id and return that data."
+         "\nsampleinfo (requires -sgs and -dt parameter) - returns sampleinfo dataset for the given study_group_ids (-sgs) and dataset_type_id (-dt);"
+         "\n                                               see more details in help info for -sgs and -dt parameters",
 )
 @click.option("--study_id", "-s", default="",
     help="Study_id of the requested metadata. Used only for metadata. If omitted, "
