@@ -184,7 +184,7 @@ def output_data_json (json_parsed, out_file):
         result_file = open(out_file, 'a', newline='')
 
         if 'data' in json_parsed:
-            result_file.write(json.dumps(json_parsed['data'], indent = 20))
+            result_file.write(json.dumps(json_parsed['data'], indent = 4))
         else:
             print(json_parsed)
         # close file, if that was opened
