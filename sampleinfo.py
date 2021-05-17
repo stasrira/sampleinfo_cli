@@ -19,21 +19,21 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
          "\nmetadata_stats (no required parameters) - returns a list of the available metadata datasets, "
          "\nsampleinfo_stats (no required parameters) - returns a list of the available sampleinfo datasets, "
          "\nmetadata (requires -s or -sg parameter) - returns metadata dataset for the given study_id (-s); "
-         "\n                                          if only study_group_id (-sg) is provided, it will identify default study_id "
-         "\n                                          withing the study_group_id and return that data."
-         "\nsampleinfo (requires -sgs and -dt parameter) - returns sampleinfo dataset for the given study_group_ids (-sgs) and dataset_type_id (-dt);"
+         "\n                                          if only center_id (-sg) is provided, it will identify default study_id "
+         "\n                                          withing the center_id and return that data."
+         "\nsampleinfo (requires -sgs and -dt parameter) - returns sampleinfo dataset for the given center_ids (-sgs) and dataset_type_id (-dt);"
          "\n                                               see more details in help info for -sgs and -dt parameters",
 )
 @click.option("--study_id", "-s", default="",
     help="Study_id of the requested metadata. Used only for metadata. If omitted, "
-         "study_group_id parameter is expected to be provided.",
+         "center_id parameter is expected to be provided.",
 )
-@click.option("--study_group_id", "-sg", default="",
-    help="Study_group_id of the requested metadata. Used only for metadata. If omitted, "
+@click.option("--center_id", "-c", default="",
+    help="center_id of the requested metadata. Used only for metadata. If omitted, "
          "study_id parameter is expected to be provided.",
 )
-@click.option("--study_group_ids", "-sgs", default="",
-    help="Study_group_ids of the requested samlpeinfo dataset; multiple comma delimited values can be provided. "
+@click.option("--center_ids", "-cs", default="",
+    help="center_ids of the requested samlpeinfo dataset; multiple comma delimited values can be provided. "
          "Required parameter. Used only for sampleinfo data.",
 )
 @click.option("--dataset_type_id", "-dt", default="",
@@ -49,10 +49,10 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
          "2) json - for json format",
 )
 
-def process(data_type, study_id, study_group_id, study_group_ids, dataset_type_id, out_file, output_format):
+def process(data_type, study_id, center_id, center_ids, dataset_type_id, out_file, output_format):
     # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, study_id, out_file))
     if check_data_type_value (data_type):
-        api_url, err_msg = identify_api_url(data_type, study_id, study_group_id, study_group_ids, dataset_type_id)
+        api_url, err_msg = identify_api_url(data_type, study_id, center_id, center_ids, dataset_type_id)
     else:
         api_url = ''
         err_msg = 'Unexpected data_type value ({}) was provided. Run --help for the list of expected values.'\
@@ -79,8 +79,7 @@ def check_data_type_value(data_type):
     else:
         return False
 
-def identify_api_url (data_type, study_id, study_group_id, study_group_ids, dataset_type_id):
-    # TODO: get api url from a config
+def identify_api_url (data_type, study_id, center_id, center_ids, dataset_type_id):
     # api_server_url = environ.get('SAMPLEINFO_CLI_URL')
     error_message = ''
     out_url = None
@@ -93,29 +92,29 @@ def identify_api_url (data_type, study_id, study_group_id, study_group_ids, data
     if data_type == 'sampleinfo_stats':
         out_url = '{}/api/sampleinfo/stats'.format(api_server_url)
 
-    # if metadata was requested and study_id or study_group_id values were provided
-    if data_type == 'metadata' and (len(str(study_id).strip()) > 0 or len(str(study_group_id).strip())> 0):
-        # if study_id is provided, study_group_id can be ignored
+    # if metadata was requested and study_id or center_id values were provided
+    if data_type == 'metadata' and (len(str(study_id).strip()) > 0 or len(str(center_id).strip()) > 0):
+        # if study_id is provided, center_id can be ignored
         if len(study_id.strip()) > 0:
             out_url = '{}/api/metadata/study/{}'.format(api_server_url, study_id.strip())
-        if len(study_group_id.strip()) > 0:
-            out_url = '{}/api/metadata/studygroup/{}'.format(api_server_url, study_group_id.strip())
-    # if out_url was not set yet, metadata was requested and study_id or study_group_id values were not provided
+        if len(center_id.strip()) > 0:
+            out_url = '{}/api/metadata/center/{}'.format(api_server_url, center_id.strip())
+    # if out_url was not set yet, metadata was requested and study_id or center_id values were not provided
     if not out_url and data_type == 'metadata':
         # report an error since one of the parameters must be provided
-        error_message = 'Missing value - "status_id" or "status_group_id" value is required to run the metadata query.'
+        error_message = 'Missing value - "status_id" or "center_id" value is required to run the metadata query.'
 
-    # if sampleinfo was requested and study_group_id and dataset_type_id values were provided
-    if data_type == 'sampleinfo' and len(str(dataset_type_id).strip()) > 0 and len(str(study_group_ids).strip()) > 0:
-        out_url = '{}/api/sampleinfo/studygroup_datasettype/{}/{}'\
-            .format(api_server_url, study_group_ids.strip(), dataset_type_id.strip())
+    # if sampleinfo was requested and center_id and dataset_type_id values were provided
+    if data_type == 'sampleinfo' and len(str(dataset_type_id).strip()) > 0 and len(str(center_ids).strip()) > 0:
+        out_url = '{}/api/sampleinfo/center_datasettype/{}/{}'\
+            .format(api_server_url, center_ids.strip(), dataset_type_id.strip())
     # if out_url was not set yet, sampleinfo was requested
-    # and study_group_id value was provided while dataset_type_id was not
-    if not out_url and data_type == 'sampleinfo' and len(str(study_group_ids).strip()) > 0:
-        out_url = '{}/api/sampleinfo/dataset?study_group_ids={}'.format(api_server_url, study_group_ids.strip())
+    # and center_id value was provided while dataset_type_id was not
+    if not out_url and data_type == 'sampleinfo' and len(str(center_ids).strip()) > 0:
+        out_url = '{}/api/sampleinfo/dataset?center_ids={}'.format(api_server_url, center_ids.strip())
     # if out_url was not set yet, sampleinfo was requested and required parameter values were not provided report error
     if not out_url and data_type == 'sampleinfo':
-        error_message = 'Missing value - "study_group_ids" value is required to run the sampleinfo query.'
+        error_message = 'Missing value - "center_ids" value is required to run the sampleinfo query.'
 
     return out_url, error_message
 
