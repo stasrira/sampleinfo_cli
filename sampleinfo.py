@@ -18,11 +18,12 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
          "Type of data to be requested. Expected values: "
          "\nmetadata_stats (no required parameters) - returns a list of the available metadata datasets, "
          "\nsampleinfo_stats (no required parameters) - returns a list of the available sampleinfo datasets, "
-         "\nmetadata (requires -s or -sg parameter) - returns metadata dataset for the given study_id (-s); "
-         "\n                                          if only center_id (-sg) is provided, it will identify default study_id "
-         "\n                                          withing the center_id and return that data."
-         "\nsampleinfo (requires -sgs and -dt parameter) - returns sampleinfo dataset for the given center_ids (-sgs) and dataset_type_id (-dt);"
-         "\n                                               see more details in help info for -sgs and -dt parameters",
+         "\nmetadata (requires -s or -c parameters) - returns metadata dataset for the given study_id (-s); "
+         "\n                                          study_id (-s) parameter preveils center_id (-c) one - center_id will be ignored if study_id is provided;"
+         "\n                                          if only center_id (-c) is provided, the process will identify the default study_id "
+         "\n                                          withing the given center_id and return that data."
+         "\nsampleinfo (requires -cs and -dt parameters) - returns sampleinfo dataset for the given center_ids (-cs) and dataset_type_id (-dt);"
+         "\n                                               see more details in help info for -cs and -dt parameters",
 )
 @click.option("--study_id", "-s", default="",
     help="Study_id of the requested metadata. Used only for metadata. If omitted, "
