@@ -1,0 +1,2 @@
+# URL for the sample info API location
+SAMPLEINFO_CLI_URL: "http://slapp06.mssm.edu:81"
