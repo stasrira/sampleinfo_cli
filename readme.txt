@@ -1,4 +1,5 @@
 # Steps to produce and executable file for this tool:
+# 0. Start python environment: source .venv/bin/activate
 # 1. Run the following command to produce an executable file. It will be created in the "dist" folder in root of the project
 # pyinstaller -F sampleinfo.py
 # 2. Copy "configs" folder with its content (main_config.yaml file) to the "dist" folder, since the code relies on the configuration file
