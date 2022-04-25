@@ -1,16 +1,16 @@
 import json
 import click
-from os import environ, path
-from dotenv import load_dotenv
+# from os import environ, path
+# from dotenv import load_dotenv
 import requests
 import csv
 import pathlib
 
 # load environment variables from files
-basedir = path.abspath(path.dirname(__file__))
-load_dotenv(path.join(basedir, '.flaskenv'))
-load_dotenv(path.join(basedir, '.env'))
-api_server_url = environ.get('SAMPLEINFO_CLI_URL')
+# basedir = path.abspath(path.dirname(__file__))
+# load_dotenv(path.join(basedir, '.flaskenv'))
+# load_dotenv(path.join(basedir, '.env'))
+# api_server_url = environ.get('SAMPLEINFO_CLI_URL')
 
 @click.command()
 @click.option("--data-type", "-d", default="metadata_stats",
@@ -49,11 +49,22 @@ api_server_url = environ.get('SAMPLEINFO_CLI_URL')
     help="Data format to be used to output received data. Expected values are: 1) csv - for comma delimited format, "
          "2) json - for json format",
 )
+@click.option('--server_url/--no-server_url', '-url/-no-url', default=False,
+    help="Prints URL being used to connect to the API server.",
+)
 
-def process(data_type, study_id, center_id, center_ids, dataset_type_id, out_file, output_format):
+def process(data_type, study_id, center_id, center_ids, dataset_type_id, out_file, output_format, server_url):
     # print ("data_type = {}, study_id = {}, out_file = {}".format(data_type, study_id, out_file))
+    # get URL of the API server
+    from utils import ConfigData
+    main_cfg = ConfigData('configs/main_config.yaml')
+    api_server_url = main_cfg.get_value('SAMPLEINFO_CLI_URL')
+    if server_url:
+        # print('server_url: {}'.format(api_server_url))
+        click.echo('server_url: {}'.format(api_server_url))
+
     if check_data_type_value (data_type):
-        api_url, err_msg = identify_api_url(data_type, study_id, center_id, center_ids, dataset_type_id)
+        api_url, err_msg = identify_api_url(api_server_url, data_type, study_id, center_id, center_ids, dataset_type_id)
     else:
         api_url = ''
         err_msg = 'Unexpected data_type value ({}) was provided. Run --help for the list of expected values.'\
@@ -80,8 +91,9 @@ def check_data_type_value(data_type):
     else:
         return False
 
-def identify_api_url (data_type, study_id, center_id, center_ids, dataset_type_id):
+def identify_api_url (api_server_url, data_type, study_id, center_id, center_ids, dataset_type_id):
     # api_server_url = environ.get('SAMPLEINFO_CLI_URL')
+
     error_message = ''
     out_url = None
 
